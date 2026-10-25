@@ -138,6 +138,55 @@
 		}
 	}
 
+	// A [slider=IDs ...] tag in the message text, with its key=value options.
+	var TAG_PATTERN = /\[slider=([\d,]+)([^\]]*)\]/gi;
+	var KEY_PATTERN = /\b(height|autoplay|thumbnails|caption)=(\w+)/gi;
+
+	// Find the tag a caret at "from" is strictly inside of (not just before its
+	// "[" or just after its "]"), so a caret left behind a freshly inserted tag
+	// still means "insert another one". With a selection ("from" to "to"), find
+	// the first tag it overlaps; merely touching the "[" or "]" does not count.
+	function findTagAt(text, from, to) {
+		var match;
+
+		if (to === undefined) {
+			to = from;
+		}
+
+		TAG_PATTERN.lastIndex = 0;
+
+		while ((match = TAG_PATTERN.exec(text)) !== null) {
+			var start = match.index;
+			var end = start + match[0].length;
+			var overlaps;
+
+			if (to === from) {
+				overlaps = from > start && from < end;
+			} else {
+				overlaps = from < end && to > start;
+			}
+
+			if (overlaps) {
+				var values = {};
+				var pair;
+
+				KEY_PATTERN.lastIndex = 0;
+
+				while ((pair = KEY_PATTERN.exec(match[2])) !== null) {
+					values[pair[1].toLowerCase()] = pair[2].toLowerCase();
+				}
+
+				return { start: start, end: end, text: match[0], ids: match[1].split(','), values: values };
+			}
+
+			if (start >= to) {
+				break;
+			}
+		}
+
+		return null;
+	}
+
 	function init() {
 		var button = document.getElementById('slider-editor-button');
 		var panel = document.getElementById('slider-editor-panel');
@@ -151,7 +200,9 @@
 		var selectAll = document.getElementById('slider-editor-all');
 		var fileInput = document.getElementById('slider-editor-file');
 		var closeButton = document.getElementById('slider-editor-close');
-		var insertButton = document.getElementById('slider-editor-insert');
+		var actionButton = document.getElementById('slider-editor-insert');
+		var title = document.getElementById('slider-editor-title');
+		var hint = document.getElementById('slider-editor-hint');
 		var fileList = document.getElementById('file-list');
 		var textarea = document.getElementById('message');
 
@@ -163,9 +214,19 @@
 		var download = panel.getAttribute('data-download') || '';
 		var imageExtensions = (panel.getAttribute('data-image-extensions') || '').toLowerCase().split(',');
 
+		var buttonTitle = button.getAttribute('title') || '';
+
 		// Ids of the ticked images. Kept across refreshes and closing the panel
-		// (e.g. to delete an attachment) until a tag is inserted.
+		// (e.g. to delete an attachment) until a tag is inserted or saved, as
+		// long as the panel is reopened for the same target.
 		var ticked = {};
+
+		// What the panel works on: "insert", or the tag being edited (by its
+		// position and text); null after a tag was inserted or saved.
+		var target = null;
+
+		// The tag being edited, or null when the panel inserts a new one.
+		var editing = null;
 
 		function isImage(name) {
 			var match = /\.([^.]+)$/.exec(String(name || '').trim());
@@ -274,18 +335,98 @@
 				return box.checked;
 			}).length;
 
-			insertButton.disabled = count === 0;
+			actionButton.disabled = count === 0;
 
 			if (selectAll) {
 				selectAll.checked = allBoxes.length > 0 && count === allBoxes.length;
 			}
 		}
 
+		// Fill the fields from a tag's options; a missing or invalid one shows
+		// the board default.
+		function fillFields(values) {
+			values = values || {};
+
+			height.value = values.height || '';
+			height.value = numberOption(height);
+			autoplay.value = values.autoplay || '';
+			autoplay.value = numberOption(autoplay);
+			thumbnails.checked = (values.thumbnails === '0' || values.thumbnails === '1' ? values.thumbnails : thumbnails.getAttribute('data-default')) === '1';
+			caption.value = values.caption || '';
+
+			if (caption.selectedIndex === -1 || caption.value !== values.caption) {
+				caption.value = caption.getAttribute('data-default');
+			}
+		}
+
 		function resetFields() {
-			height.value = height.getAttribute('data-default');
-			autoplay.value = autoplay.getAttribute('data-default');
-			thumbnails.checked = thumbnails.getAttribute('data-default') === '1';
-			caption.value = caption.getAttribute('data-default');
+			fillFields(null);
+		}
+
+		// Swap a text between its insert and edit variant, both kept in data-
+		// attributes on the element so this script needs no language strings.
+		function setMode(el, edit) {
+			var text = el ? el.getAttribute(edit ? 'data-text-edit' : 'data-text-insert') : null;
+
+			if (text !== null) {
+				el.textContent = text;
+			}
+		}
+
+		// Open for a tag (edit) or for a new one (insert). Reopening for the same
+		// target keeps what was ticked and typed; another target starts afresh.
+		function openFor(tag) {
+			var key = tag ? 'edit:' + tag.start + ':' + tag.text : 'insert';
+
+			if (key !== target) {
+				target = key;
+				ticked = {};
+
+				if (tag) {
+					tag.ids.forEach(function (id) {
+						ticked[id] = true;
+					});
+				}
+
+				fillFields(tag ? tag.values : null);
+			}
+
+			editing = tag;
+
+			if (tag) {
+				// Which of the identical copies of this tag it is, to find it again.
+				var copies = positions(textarea.value, tag.text);
+
+				tag.copies = copies.length;
+				tag.copy = copies.indexOf(tag.start);
+			}
+
+			setMode(title, !!tag);
+			setMode(hint, !!tag);
+			setMode(actionButton, !!tag);
+
+			if (title) {
+				panel.setAttribute('aria-label', title.textContent);
+			}
+
+			setOpen(true);
+		}
+
+		function tagAtCaret() {
+			if (!textarea || typeof textarea.selectionStart !== 'number') {
+				return null;
+			}
+
+			return findTagAt(textarea.value, textarea.selectionStart, textarea.selectionEnd);
+		}
+
+		// Show on the toolbar button that clicking it edits the tag at the caret.
+		function updateHint() {
+			var inTag = !!tagAtCaret();
+			var editTitle = button.getAttribute('data-title-edit');
+
+			button.classList.toggle('slider-editor-button--edit', inTag);
+			button.setAttribute('title', inTag && editTitle ? editTitle : buttonTitle);
 		}
 
 		// Opening moves focus into the panel; closing with the close button or
@@ -296,7 +437,7 @@
 
 			if (open) {
 				refresh();
-				(selectAll || closeButton || insertButton).focus();
+				(selectAll || closeButton || actionButton).focus();
 			} else if (returnFocus) {
 				button.focus();
 			}
@@ -340,10 +481,77 @@
 				textarea.focus();
 			}
 
-			// The next Slider starts afresh.
+			done();
+		}
+
+		// Replace the edited tag in place. It is looked up again by its text, in
+		// case the message changed while the panel was open; if it is gone, the
+		// tag is inserted at the cursor instead.
+		function save() {
+			var text = textarea.value;
+			var copies = positions(text, editing.text);
+			var at;
+
+			// Identical tags are told apart by which copy it was, as long as no
+			// copy was added or removed; otherwise take the one nearest its old place.
+			if (copies.length === editing.copies) {
+				at = copies[editing.copy];
+			} else {
+				at = nearest(copies, editing.start);
+			}
+
+			var tag = at === undefined ? null : { start: at, end: at + editing.text.length };
+
+			if (!tag) {
+				insert();
+				return;
+			}
+
+			var replacement = buildTag();
+			var caret = tag.start + replacement.length;
+
+			textarea.value = text.slice(0, tag.start) + replacement + text.slice(tag.end);
+			textarea.focus();
+			textarea.setSelectionRange(caret, caret);
+			textarea.dispatchEvent(new Event('input', { bubbles: true }));
+
+			done();
+		}
+
+		// The positions of every copy of "needle" in "text".
+		function positions(text, needle) {
+			var found = [];
+			var at = text.indexOf(needle);
+
+			while (at !== -1) {
+				found.push(at);
+				at = text.indexOf(needle, at + 1);
+			}
+
+			return found;
+		}
+
+		// The position nearest to "near", or undefined when there is none.
+		function nearest(found, near) {
+			var best;
+
+			found.forEach(function (at) {
+				if (best === undefined || Math.abs(at - near) < Math.abs(best - near)) {
+					best = at;
+				}
+			});
+
+			return best;
+		}
+
+		// The next Slider starts afresh.
+		function done() {
+			target = null;
+			editing = null;
 			ticked = {};
 			resetFields();
 			setOpen(false);
+			updateHint();
 		}
 
 		// Hand the chosen images to phpBB's own uploader; its attach rows then
@@ -364,7 +572,12 @@
 
 		button.addEventListener('click', function (e) {
 			e.preventDefault();
-			setOpen(!isOpen());
+
+			if (isOpen()) {
+				setOpen(false);
+			} else {
+				openFor(tagAtCaret());
+			}
 		});
 
 		list.addEventListener('change', function (e) {
@@ -395,7 +608,28 @@
 			});
 		}
 
-		insertButton.addEventListener('click', insert);
+		actionButton.addEventListener('click', function () {
+			if (editing && textarea) {
+				save();
+			} else {
+				insert();
+			}
+		});
+
+		if (textarea) {
+			// Double-clicking inside a [slider] tag opens the panel to edit it.
+			textarea.addEventListener('dblclick', function () {
+				var tag = tagAtCaret();
+
+				if (tag) {
+					openFor(tag);
+				}
+			});
+
+			['click', 'keyup', 'select', 'focus', 'input'].forEach(function (type) {
+				textarea.addEventListener(type, updateHint);
+			});
+		}
 
 		if (closeButton) {
 			closeButton.addEventListener('click', function () {

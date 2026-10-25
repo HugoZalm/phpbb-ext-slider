@@ -10,6 +10,13 @@
 	vertical-align: middle;
 }
 
+/* The toolbar button when clicking it edits the Slider tag at the cursor. */
+.slider-editor-button--edit {
+	border-color: #105289;
+	box-shadow: inset 0 0 0 1px #105289;
+	color: #105289;
+}
+
 .slider-editor-panel {
 	position: absolute;
 	top: 100%;
