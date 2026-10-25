@@ -1,0 +1,54 @@
+{% if S_SHOW_ATTACH_BOX and not S_PRIVMSGS %}
+	<span class="slider-editor-wrap">
+		<button type="button" class="button button-icon-only bbcode-slider" id="slider-editor-button"
+			title="{{ lang('SLIDER_BUTTON_EXPLAIN') }}"
+			aria-haspopup="dialog" aria-expanded="false" aria-controls="slider-editor-panel">
+			<svg class="icon slider-editor-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+				<rect x="6" y="3" width="15" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/>
+				<path d="M3 7v11.5A1.5 1.5 0 0 0 4.5 20H17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+				<path d="M8 13l3.5-4 2.5 3 1.5-1.5L19 13z" fill="currentColor"/>
+			</svg>
+			<span class="sr-only">{{ lang('SLIDER_BUTTON') }}</span>
+		</button>
+
+		<div class="slider-editor-panel hidden" id="slider-editor-panel" role="dialog" aria-label="{{ lang('SLIDER_PANEL_TITLE') }}"
+			data-download="{{ SLIDER_PANEL_DOWNLOAD }}" data-image-extensions="{{ SLIDER_PANEL_IMAGE_EXTENSIONS }}">
+			<div class="slider-editor-head">
+				<strong>{{ lang('SLIDER_PANEL_TITLE') }}</strong>
+				<button type="button" class="button2 slider-editor-close" id="slider-editor-close" title="{{ lang('SLIDER_PANEL_CLOSE') }}" aria-label="{{ lang('SLIDER_PANEL_CLOSE') }}">&times;</button>
+			</div>
+			<p class="slider-editor-hint">{{ lang('SLIDER_PANEL_HINT') }}</p>
+
+			<label class="slider-editor-all"><input type="checkbox" id="slider-editor-all" /> {{ lang('SLIDER_PANEL_SELECT_ALL') }}</label>
+			<ul class="slider-editor-list hidden" id="slider-editor-list"></ul>
+			<p class="slider-editor-empty" id="slider-editor-empty">{{ lang('SLIDER_PANEL_EMPTY') }}</p>
+
+			<div class="slider-editor-upload">
+				<label class="button2 slider-editor-upload-label" for="slider-editor-file">{{ lang('SLIDER_PANEL_UPLOAD') }}</label>
+				<input type="file" id="slider-editor-file" class="slider-editor-file" accept="image/*" multiple />
+			</div>
+
+			<div class="slider-editor-options">
+				<label for="slider-editor-height">{{ lang('SLIDER_PANEL_HEIGHT') }}</label>
+				<input type="number" min="1" max="2000" id="slider-editor-height" class="slider-editor-number" value="{{ SLIDER_PANEL_HEIGHT }}" data-default="{{ SLIDER_PANEL_HEIGHT }}" />
+				<label for="slider-editor-autoplay">{{ lang('SLIDER_PANEL_AUTOPLAY') }}</label>
+				<input type="number" min="0" max="60" id="slider-editor-autoplay" class="slider-editor-number" value="{{ SLIDER_PANEL_AUTOPLAY }}" data-default="{{ SLIDER_PANEL_AUTOPLAY }}" />
+				<label for="slider-editor-thumbnails">{{ lang('SLIDER_PANEL_THUMBNAILS') }}</label>
+				<input type="checkbox" id="slider-editor-thumbnails" data-default="{{ SLIDER_PANEL_THUMBNAILS }}"{% if SLIDER_PANEL_THUMBNAILS %} checked="checked"{% endif %} />
+				<label for="slider-editor-caption">{{ lang('SLIDER_PANEL_CAPTION') }}</label>
+				<select id="slider-editor-caption" data-default="{{ SLIDER_PANEL_CAPTION }}">
+					<option value="comment"{% if SLIDER_PANEL_CAPTION == 'comment' %} selected="selected"{% endif %}>{{ lang('SLIDER_PANEL_CAPTION_COMMENT') }}</option>
+					<option value="name"{% if SLIDER_PANEL_CAPTION == 'name' %} selected="selected"{% endif %}>{{ lang('SLIDER_PANEL_CAPTION_NAME') }}</option>
+					<option value="none"{% if SLIDER_PANEL_CAPTION == 'none' %} selected="selected"{% endif %}>{{ lang('SLIDER_PANEL_CAPTION_NONE') }}</option>
+				</select>
+			</div>
+
+			<p class="slider-editor-actions">
+				<button type="button" class="button1" id="slider-editor-insert" disabled="disabled">{{ lang('SLIDER_PANEL_INSERT') }}</button>
+			</p>
+		</div>
+	</span>
+
+	{% INCLUDEJS '@hugozalm_slider/sliderpanel.js' %}
+	{% INCLUDECSS '@hugozalm_slider/sliderpanel.css' %}
+{% endif %}

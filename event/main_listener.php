@@ -85,7 +85,7 @@ class main_listener implements EventSubscriberInterface
 			'core.viewtopic_modify_post_row'		=> 'fill_viewtopic_post',
 			'core.topic_review_modify_post_list'	=> 'remember_attachments',
 			'core.topic_review_modify_row'			=> 'fill_topic_review_post',
-			'core.posting_modify_template_vars'		=> 'fill_preview',
+			'core.posting_modify_template_vars'		=> [['fill_preview'], ['prepare_panel']],
 		];
 	}
 
@@ -288,6 +288,40 @@ class main_listener implements EventSubscriberInterface
 
 		$this->hide_from_preview_attachments(slides::shown_ids($preview, $rows, $extensions));
 		$this->template->assign_var('PREVIEW_MESSAGE', $this->fill($preview, $rows, 'slider-preview', (int) $event['forum_id']));
+	}
+
+	/**
+	 * Give the editor's Slider panel its strings and settings
+	 *
+	 * The panel's fields start at the board defaults, which it writes into every
+	 * tag it inserts.
+	 *
+	 * @param \phpbb\event\data	$event	Event object
+	 */
+	public function prepare_panel($event)
+	{
+		$this->language->add_lang('common', 'hugozalm/slider');
+
+		$image_extensions = [];
+
+		foreach ($this->cache->obtain_attach_extensions((int) $event['forum_id']) as $extension => $data)
+		{
+			if (is_array($data) && isset($data['display_cat']) && (int) $data['display_cat'] === slides::IMAGE_CATEGORY)
+			{
+				$image_extensions[] = $extension;
+			}
+		}
+
+		$defaults = $this->defaults();
+
+		$this->template->assign_vars([
+			'SLIDER_PANEL_DOWNLOAD'			=> append_sid($this->root_path . 'download/file.' . $this->php_ext),
+			'SLIDER_PANEL_IMAGE_EXTENSIONS'	=> implode(',', $image_extensions),
+			'SLIDER_PANEL_HEIGHT'			=> $defaults['height'],
+			'SLIDER_PANEL_AUTOPLAY'			=> $defaults['autoplay'],
+			'SLIDER_PANEL_THUMBNAILS'		=> $defaults['thumbnails'],
+			'SLIDER_PANEL_CAPTION'			=> $defaults['caption'],
+		]);
 	}
 
 	/**

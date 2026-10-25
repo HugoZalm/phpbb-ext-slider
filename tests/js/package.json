@@ -4,7 +4,7 @@
   "private": true,
   "description": "jsdom behaviour tests for the Slider web component.",
   "scripts": {
-    "test": "node slider.test.js"
+    "test": "node slider.test.js && node sliderpanel.test.js"
   },
   "devDependencies": {
     "jsdom": "^24.1.3"

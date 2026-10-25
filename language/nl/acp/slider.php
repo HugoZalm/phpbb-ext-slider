@@ -19,7 +19,7 @@ if (empty($lang) || !is_array($lang))
 }
 
 $lang = array_merge($lang, [
-	'ACP_SLIDER_EXPLAIN'			=> 'De standaard weergave-opties voor Sliders. Een Slider gebruikt de waarde van hier voor elke optie die de tag weglaat.',
+	'ACP_SLIDER_EXPLAIN'			=> 'De standaard weergave-opties voor Sliders. Het Slider-paneel in de editor begint met deze waarden en schrijft ze in elke Slider-tag die het invoegt, dus wijzigen heeft alleen invloed op nieuwe Sliders. Een met de hand getypte tag zonder een optie gebruikt de waarde van hier.',
 
 	'ACP_SLIDER_DEFAULTS'			=> 'Standaard weergave-opties',
 	'ACP_SLIDER_HEIGHT'				=> 'Hoogte',
