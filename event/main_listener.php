@@ -134,7 +134,48 @@ class main_listener implements EventSubscriberInterface
 	 */
 	public function fill_viewtopic_post($event)
 	{
-		$this->fill_post_row($event, (int) $event['topic_data']['forum_id']);
+		$forum_id = (int) $event['topic_data']['forum_id'];
+
+		$this->hide_from_post_attachments($event, $forum_id);
+		$this->fill_post_row($event, $forum_id);
+	}
+
+	/**
+	 * Leave a post's Slides out of its attachment box, like inline attachments
+	 *
+	 * By now the post's attachments are displayed HTML, not rows, and the box is
+	 * assigned from them after this event.
+	 *
+	 * @param \phpbb\event\data	$event		viewtopic post row event
+	 * @param int				$forum_id	The post's forum
+	 */
+	protected function hide_from_post_attachments($event, $forum_id)
+	{
+		$post_id = (int) $event['row']['post_id'];
+		$attachments = $event['attachments'];
+		$post_row = $event['post_row'];
+
+		if (empty($attachments[$post_id]))
+		{
+			return;
+		}
+
+		$shown = $this->shown_ids($post_row['MESSAGE'], $post_id, $forum_id);
+
+		if (!$shown)
+		{
+			return;
+		}
+
+		$attachments[$post_id] = array_filter($attachments[$post_id], function ($html) use ($shown) {
+			return !in_array(slides::attachment_id($html), $shown, true);
+		});
+
+		$post_row['S_HAS_ATTACHMENTS'] = !empty($attachments[$post_id]);
+		$post_row['S_MULTIPLE_ATTACHMENTS'] = count($attachments[$post_id]) > 1;
+
+		$event['attachments'] = $attachments;
+		$event['post_row'] = $post_row;
 	}
 
 	/**
@@ -154,12 +195,36 @@ class main_listener implements EventSubscriberInterface
 	protected function fill_post_row($event, $forum_id)
 	{
 		$post_id = (int) $event['row']['post_id'];
-		$rows = isset($this->attachments[$post_id]) ? $this->attachments[$post_id] : [];
 		$post_row = $event['post_row'];
 
-		$post_row['MESSAGE'] = $this->fill($post_row['MESSAGE'], $rows, 'slider-p' . $post_id, $forum_id);
+		$post_row['MESSAGE'] = $this->fill($post_row['MESSAGE'], $this->remembered_rows($post_id), 'slider-p' . $post_id, $forum_id);
 
 		$event['post_row'] = $post_row;
+	}
+
+	/**
+	 * @param string	$html		Rendered post text
+	 * @param int		$post_id	Post id
+	 * @param int		$forum_id	The post's forum
+	 * @return int[]	Attach ids the post shows as Slides
+	 */
+	protected function shown_ids($html, $post_id, $forum_id)
+	{
+		if (strpos($html, '<image-slider') === false)
+		{
+			return [];
+		}
+
+		return slides::shown_ids($html, $this->remembered_rows($post_id), $this->cache->obtain_attach_extensions($forum_id));
+	}
+
+	/**
+	 * @param int	$post_id	Post id
+	 * @return array	The attachment rows remembered for the post
+	 */
+	protected function remembered_rows($post_id)
+	{
+		return isset($this->attachments[$post_id]) ? $this->attachments[$post_id] : [];
 	}
 
 	/**
@@ -204,7 +269,54 @@ class main_listener implements EventSubscriberInterface
 			$this->db->sql_freeresult($result);
 		}
 
+		$extensions = $this->cache->obtain_attach_extensions((int) $event['forum_id']);
+
+		$this->hide_from_preview_attachments(slides::shown_ids($preview, $rows, $extensions));
 		$this->template->assign_var('PREVIEW_MESSAGE', $this->fill($preview, $rows, 'slider-preview', (int) $event['forum_id']));
+	}
+
+	/**
+	 * Remove the Slides from the preview's attachment box, which posting.php has
+	 * already assigned as "attachment" template rows of displayed HTML.
+	 *
+	 * @param int[]	$shown	Attach ids shown as Slides
+	 */
+	protected function hide_from_preview_attachments(array $shown)
+	{
+		if (!$shown)
+		{
+			return;
+		}
+
+		$last = $this->template->find_key_index('attachment', true);
+
+		if ($last === false)
+		{
+			return;
+		}
+
+		$remove = [];
+
+		for ($row = 0; $row <= $last; $row++)
+		{
+			$vars = $this->template->retrieve_block_vars('attachment[' . $row . ']', ['DISPLAY_ATTACHMENT']);
+
+			if (in_array(slides::attachment_id($vars['DISPLAY_ATTACHMENT']), $shown, true))
+			{
+				$remove[] = $row;
+			}
+		}
+
+		// Delete back to front so the remaining row numbers stay valid.
+		foreach (array_reverse($remove) as $row)
+		{
+			$this->template->alter_block_array('attachment', [], $row, 'delete');
+		}
+
+		if (count($remove) === $last + 1)
+		{
+			$this->template->assign_var('S_HAS_ATTACHMENTS', false);
+		}
 	}
 
 	/**

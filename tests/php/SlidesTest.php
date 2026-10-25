@@ -184,4 +184,54 @@ class SlidesTest extends TestCase
 
 		$this->assertSame($html, slides::fill($html, [], self::EXTENSIONS, 'g', [self::class, 'url']));
 	}
+
+	public function test_shown_ids_are_the_slides_of_every_slider(): void
+	{
+		$rows = [self::row(1, 'a.jpg'), self::row(2, 'b.jpg'), self::row(3, 'c.jpg')];
+		$html = '<image-slider data-ids="3,1"></image-slider><p>x</p><image-slider data-ids="1"></image-slider>';
+
+		$shown = slides::shown_ids($html, $rows, self::EXTENSIONS);
+		sort($shown);
+
+		$this->assertSame([1, 3], $shown);
+	}
+
+	public function test_ids_not_shown_as_slides_are_not_shown_ids(): void
+	{
+		$rows = [self::row(1, 'a.jpg'), self::row(2, 'route.gpx')];
+		$html = '<image-slider data-ids="1,2,99"></image-slider>';
+
+		$this->assertSame([1], slides::shown_ids($html, $rows, self::EXTENSIONS));
+	}
+
+	public function test_text_without_a_slider_shows_no_ids(): void
+	{
+		$this->assertSame([], slides::shown_ids('<p>none</p>', [self::row(1, 'a.jpg')], self::EXTENSIONS));
+	}
+
+	public function test_attachment_id_of_an_inline_image(): void
+	{
+		$html = '<dl class="file"><dt class="attach-image"><img src="./download/file.php?id=37&amp;sid=abc" class="postimage" alt="01.jpeg" /></dt></dl>';
+
+		$this->assertSame(37, slides::attachment_id($html));
+	}
+
+	public function test_attachment_id_of_a_thumbnail(): void
+	{
+		$html = '<dl class="thumbnail"><dt><a href="./download/file.php?id=370&amp;mode=view"><img src="./download/file.php?id=370&amp;t=1" class="postimage" /></a></dt></dl>';
+
+		$this->assertSame(370, slides::attachment_id($html));
+	}
+
+	public function test_attachment_id_of_a_file_link(): void
+	{
+		$html = '<dl class="file"><dt><a class="postlink" href="./download/file.php?id=46">mar_lvl.gpx</a></dt></dl>';
+
+		$this->assertSame(46, slides::attachment_id($html));
+	}
+
+	public function test_attachment_id_without_a_download_link(): void
+	{
+		$this->assertNull(slides::attachment_id('<span>denied</span>'));
+	}
 }

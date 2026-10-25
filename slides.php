@@ -103,6 +103,47 @@ class slides
 	}
 
 	/**
+	 * The attach ids shown as Slides by the Slider placeholders in a rendered
+	 * post. These are left out of the post's attachment box.
+	 *
+	 * @param string	$html		Rendered post text, before fill()
+	 * @param array		$rows		The post's attachment rows
+	 * @param array		$extensions	Attachment extensions, as from obtain_attach_extensions()
+	 * @return int[]
+	 */
+	public static function shown_ids($html, array $rows, array $extensions)
+	{
+		$shown = [];
+
+		if (preg_match_all(self::PLACEHOLDER, $html, $matches))
+		{
+			foreach ($matches[1] as $ids)
+			{
+				foreach (self::select($ids, $rows, $extensions) as $slide)
+				{
+					$shown[(int) $slide['attach_id']] = (int) $slide['attach_id'];
+				}
+			}
+		}
+
+		return array_values($shown);
+	}
+
+	/**
+	 * The attach id of an attachment as phpBB displays it, from its download link.
+	 *
+	 * Relies on the style's attachment template linking to download/file.php?id=N,
+	 * as prosilver does; without such a link the attachment is never hidden.
+	 *
+	 * @param string	$html	One displayed attachment
+	 * @return int|null
+	 */
+	public static function attachment_id($html)
+	{
+		return preg_match('#file\.php\?id=(\d+)#', $html, $match) ? (int) $match[1] : null;
+	}
+
+	/**
 	 * An attachment's original filename as plain text. phpBB stores it
 	 * HTML-escaped, as it came in through the request.
 	 *
