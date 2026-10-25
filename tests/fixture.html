@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<!-- Manual browser check for <image-slider>: open this file directly. Markup mirrors what the listener renders. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slider fixture</title>
+<link rel="stylesheet" href="../assets/css/slider.css">
+<script>window.SLIDER_CONFIG = { messages: { previous: 'Previous image', next: 'Next image' } };</script>
+<script src="../assets/js/slider.js" defer></script>
+<style>body { font-family: sans-serif; max-width: 800px; margin: 2em auto; padding: 0 16px; }</style>
+</head>
+<body>
+<h1>Slider fixture</h1>
+
+<h2>Three Slides</h2>
+<image-slider class="image-slider" id="three"></image-slider>
+
+<h2>Single Slide</h2>
+<image-slider class="image-slider" id="one"></image-slider>
+
+<h2>Empty (renders nothing)</h2>
+<image-slider data-ids="99"></image-slider>
+<p>end</p>
+
+<script>
+	// Build the Slides from inline SVGs so the page works offline.
+	function svg(label, color) {
+		return 'data:image/svg+xml,' + encodeURIComponent(
+			'<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500"><rect width="100%" height="100%" fill="' + color + '"/>'
+			+ '<text x="50%" y="50%" font-size="80" text-anchor="middle" fill="#fff">' + label + '</text></svg>');
+	}
+
+	function slides(id, items) {
+		document.getElementById(id).innerHTML = items.map(function (item) {
+			var src = svg(item[0], item[1]);
+			return '<a class="image-slider-slide" href="' + src + '" data-lightbox="' + id + '" data-title="' + item[0] + '"><img src="' + src + '" alt="' + item[0] + '"></a>';
+		}).join('');
+	}
+
+	slides('three', [['01.jpeg', '#2a6f97'], ['02.jpeg', '#6a994e'], ['10.jpeg', '#bc4749']]);
+	slides('one', [['single.jpeg', '#555']]);
+</script>
+</body>
+</html>

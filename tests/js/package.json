@@ -1,0 +1,12 @@
+{
+  "name": "slider-js-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "jsdom behaviour tests for the Slider web component.",
+  "scripts": {
+    "test": "node slider.test.js"
+  },
+  "devDependencies": {
+    "jsdom": "^24.1.3"
+  }
+}

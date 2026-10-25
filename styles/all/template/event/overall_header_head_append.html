@@ -1,0 +1,5 @@
+{% if S_SLIDER %}
+	<link href="{{ SLIDER_STYLESHEET }}" rel="stylesheet">
+	<script>window.SLIDER_CONFIG = {{ SLIDER_CONFIG|raw }};</script>
+	<script src="{{ SLIDER_SCRIPT }}" defer></script>
+{% endif %}

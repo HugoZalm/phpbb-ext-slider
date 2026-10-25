@@ -1,0 +1,7 @@
+{# Slides open in vse/lightbox's Lightbox3, which vse only loads when its resize or all-images
+   settings are on. Load it from vse/lightbox otherwise, sharing its load-once guard. #}
+{% if S_SLIDER and not definition.INCLUDED_LIGHTBOXJS %}
+	{% INCLUDECSS '@vse_lightbox/lightbox3.css' %}
+	{% INCLUDEJS '@vse_lightbox/js/lightbox3.min.js' %}
+	{% DEFINE INCLUDED_LIGHTBOXJS = true %}
+{% endif %}

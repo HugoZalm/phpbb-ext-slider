@@ -1,0 +1,80 @@
+/* <image-slider>: one Slide at a time, swiped or stepped with the buttons. */
+image-slider {
+	display: block;
+	position: relative;
+	max-width: 100%;
+	margin: 0.5em 0;
+}
+
+image-slider:not(:defined) > a.image-slider-slide:not(:first-child) {
+	display: none;
+}
+
+.image-slider-track {
+	display: flex;
+	overflow-x: auto;
+	scroll-snap-type: x mandatory;
+	scroll-behavior: smooth;
+	scrollbar-width: none;
+}
+
+.image-slider-track::-webkit-scrollbar {
+	display: none;
+}
+
+.image-slider-slide {
+	flex: 0 0 100%;
+	scroll-snap-align: start;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 400px;
+	background: #000;
+}
+
+.image-slider-slide img {
+	max-width: 100%;
+	max-height: 100%;
+	object-fit: contain;
+}
+
+.image-slider-button {
+	position: absolute;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 2.5em;
+	height: 2.5em;
+	border: 0;
+	border-radius: 50%;
+	background: rgba(0, 0, 0, 0.5);
+	color: #fff;
+	font-size: 1.2em;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.image-slider-button:disabled {
+	opacity: 0.25;
+	cursor: default;
+}
+
+.image-slider-prev {
+	left: 0.5em;
+}
+
+.image-slider-prev::before {
+	content: "\2039";
+}
+
+.image-slider-next {
+	right: 0.5em;
+}
+
+.image-slider-next::before {
+	content: "\203A";
+}
+
+image-slider:focus-visible {
+	outline: 2px solid #105289;
+	outline-offset: 2px;
+}

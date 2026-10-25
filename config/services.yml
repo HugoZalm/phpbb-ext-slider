@@ -1,0 +1,12 @@
+services:
+    hugozalm.slider.listener:
+        class: hugozalm\slider\event\main_listener
+        arguments:
+            - '@template'
+            - '@language'
+            - '@cache'
+            - '@dbal.conn'
+            - '%core.root_path%'
+            - '%core.php_ext%'
+        tags:
+            - { name: event.listener }
