@@ -47,7 +47,7 @@ The Slider panel starts with these values and **writes all four into every tag i
 3. The Slider panel opens as **Insert slider**. In it:
    - tick the images to show (each with a thumbnail and its file name), or use **Select all**,
    - **Upload images** to attach more through phpBB's normal uploader; they appear in the list,
-   - adjust **Height**, **Autoplay**, **Thumbnails** and **Caption** for this Slider if you like.
+   - adjust **Height**, **Autoplay**, **Thumbnails** and **Caption** for this Slider if you like. Ticking **Autoplay** suggests 5 seconds between images; change the number if you want another interval.
 4. Click **Insert**. A tag like `[slider=12,15,9 height=400 autoplay=0 thumbnails=1 caption=comment]` is placed at the cursor. Move it wherever the Slider should appear; a post can hold several Sliders.
 5. Use **Preview** to check, then submit.
 

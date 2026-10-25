@@ -31,8 +31,12 @@
 			<div class="slider-editor-options">
 				<label for="slider-editor-height">{{ lang('SLIDER_PANEL_HEIGHT') }}</label>
 				<input type="number" min="1" max="2000" id="slider-editor-height" class="slider-editor-number" value="{{ SLIDER_PANEL_HEIGHT }}" data-default="{{ SLIDER_PANEL_HEIGHT }}" />
-				<label for="slider-editor-autoplay">{{ lang('SLIDER_PANEL_AUTOPLAY') }}</label>
-				<input type="number" min="0" max="60" id="slider-editor-autoplay" class="slider-editor-number" value="{{ SLIDER_PANEL_AUTOPLAY }}" data-default="{{ SLIDER_PANEL_AUTOPLAY }}" />
+				<label for="slider-editor-autoplay-on">{{ lang('SLIDER_PANEL_AUTOPLAY') }}</label>
+				<span class="slider-editor-autoplay">
+					<input type="checkbox" id="slider-editor-autoplay-on"{% if SLIDER_PANEL_AUTOPLAY %} checked="checked"{% endif %} />
+					<input type="number" min="1" max="60" id="slider-editor-autoplay" class="slider-editor-number" value="{% if SLIDER_PANEL_AUTOPLAY %}{{ SLIDER_PANEL_AUTOPLAY }}{% endif %}" data-default="{{ SLIDER_PANEL_AUTOPLAY }}" aria-label="{{ lang('SLIDER_PANEL_AUTOPLAY_SECONDS') }}"{% if not SLIDER_PANEL_AUTOPLAY %} disabled="disabled"{% endif %} />
+					{{ lang('SLIDER_PANEL_SECONDS') }}
+				</span>
 				<label for="slider-editor-thumbnails">{{ lang('SLIDER_PANEL_THUMBNAILS') }}</label>
 				<input type="checkbox" id="slider-editor-thumbnails" data-default="{{ SLIDER_PANEL_THUMBNAILS }}"{% if SLIDER_PANEL_THUMBNAILS %} checked="checked"{% endif %} />
 				<label for="slider-editor-caption">{{ lang('SLIDER_PANEL_CAPTION') }}</label>

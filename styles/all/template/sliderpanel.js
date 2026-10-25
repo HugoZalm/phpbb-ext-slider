@@ -208,6 +208,7 @@
 
 		var height = document.getElementById('slider-editor-height');
 		var autoplay = document.getElementById('slider-editor-autoplay');
+		var autoplayOn = document.getElementById('slider-editor-autoplay-on');
 		var thumbnails = document.getElementById('slider-editor-thumbnails');
 		var caption = document.getElementById('slider-editor-caption');
 
@@ -349,8 +350,7 @@
 
 			height.value = values.height || '';
 			height.value = numberOption(height);
-			autoplay.value = values.autoplay || '';
-			autoplay.value = numberOption(autoplay);
+			setAutoplay(autoplaySeconds(values.autoplay));
 			thumbnails.checked = (values.thumbnails === '0' || values.thumbnails === '1' ? values.thumbnails : thumbnails.getAttribute('data-default')) === '1';
 			caption.value = values.caption || '';
 
@@ -361,6 +361,25 @@
 
 		function resetFields() {
 			fillFields(null);
+		}
+
+		// A tag's autoplay seconds (0 = off); missing or invalid gives the board default.
+		function autoplaySeconds(value) {
+			var seconds = /^\d+$/.test(value || '') ? parseInt(value, 10) : NaN;
+
+			if (isNaN(seconds) || seconds > 60) {
+				seconds = parseInt(autoplay.getAttribute('data-default'), 10) || 0;
+			}
+
+			return seconds;
+		}
+
+		// Autoplay is a switch plus the seconds between images; off shows no
+		// seconds and writes autoplay=0.
+		function setAutoplay(seconds) {
+			autoplayOn.checked = seconds > 0;
+			autoplay.disabled = seconds === 0;
+			autoplay.value = seconds > 0 ? String(seconds) : '';
 		}
 
 		// Swap a text between its insert and edit variant, both kept in data-
@@ -466,7 +485,7 @@
 
 			return '[slider=' + ids.join(',')
 				+ ' height=' + numberOption(height)
-				+ ' autoplay=' + numberOption(autoplay)
+				+ ' autoplay=' + (autoplayOn.checked ? numberOption(autoplay) : '0')
 				+ ' thumbnails=' + (thumbnails.checked ? '1' : '0')
 				+ ' caption=' + (caption.value || caption.getAttribute('data-default')) + ']';
 		}
@@ -607,6 +626,15 @@
 				updateState();
 			});
 		}
+
+		// Switching autoplay on suggests 5 seconds when no interval was chosen yet.
+		autoplayOn.addEventListener('change', function () {
+			autoplay.disabled = !autoplayOn.checked;
+
+			if (autoplayOn.checked && !/^[1-9]\d*$/.test(autoplay.value)) {
+				autoplay.value = '5';
+			}
+		});
 
 		actionButton.addEventListener('click', function () {
 			if (editing && textarea) {

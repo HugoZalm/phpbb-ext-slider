@@ -24,7 +24,8 @@ const html = `<!DOCTYPE html><html><body>
       <p id="slider-editor-empty">empty</p>
       <input type="file" id="slider-editor-file" multiple>
       <input type="number" id="slider-editor-height" min="1" max="2000" data-default="400">
-      <input type="number" id="slider-editor-autoplay" min="0" max="60" data-default="0">
+      <input type="checkbox" id="slider-editor-autoplay-on">
+      <input type="number" id="slider-editor-autoplay" min="1" max="60" data-default="0">
       <input type="checkbox" id="slider-editor-thumbnails" data-default="1">
       <select id="slider-editor-caption" data-default="comment">
         <option value="comment">comment</option><option value="name">name</option><option value="none">none</option>
@@ -68,6 +69,7 @@ const all = $('slider-editor-all');
 const insert = $('slider-editor-insert');
 const height = $('slider-editor-height');
 const autoplay = $('slider-editor-autoplay');
+const autoplayOn = $('slider-editor-autoplay-on');
 const thumbnails = $('slider-editor-thumbnails');
 const caption = $('slider-editor-caption');
 
@@ -119,7 +121,7 @@ function open() {
 
 	// --- Fields ------------------------------------------------------------------
 
-	assert('the fields start at the board defaults', height.value === '400' && autoplay.value === '0' && thumbnails.checked && caption.value === 'comment');
+	assert('the fields start at the board defaults', height.value === '400' && !autoplayOn.checked && autoplay.disabled && thumbnails.checked && caption.value === 'comment');
 
 	// --- Selecting ---------------------------------------------------------------
 
@@ -172,6 +174,8 @@ function open() {
 	assert('reopening starts with nothing ticked', boxes().every((b) => !b.checked) && insert.disabled);
 	tick(12);
 	height.value = '300';
+	autoplayOn.click();
+	assert('switching autoplay on suggests 5 seconds', autoplayOn.checked && !autoplay.disabled && autoplay.value === '5');
 	autoplay.value = '4';
 	thumbnails.checked = false;
 	caption.value = 'name';
@@ -179,12 +183,26 @@ function open() {
 	assert('insert writes the edited options', inserted[1] === '[slider=12 height=300 autoplay=4 thumbnails=0 caption=name]');
 
 	open();
-	assert('reopening resets the fields to the board defaults', height.value === '400' && autoplay.value === '0' && thumbnails.checked && caption.value === 'comment');
+	assert('reopening resets the fields to the board defaults', height.value === '400' && !autoplayOn.checked && autoplay.disabled && thumbnails.checked && caption.value === 'comment');
 	tick(12);
 	height.value = '0';
+	autoplayOn.click();
 	autoplay.value = 'abc';
 	insert.click();
 	assert('an invalid field falls back to the board default', inserted[2] === '[slider=12 height=400 autoplay=0 thumbnails=1 caption=comment]');
+
+	// Autoplay switched on, then off again: the interval is kept but not written.
+	open();
+	tick(12);
+	autoplayOn.click();
+	autoplay.value = '8';
+	autoplayOn.click();
+	assert('switching autoplay off disables the seconds field', !autoplayOn.checked && autoplay.disabled);
+	autoplayOn.click();
+	assert('switching it on again keeps the chosen interval', autoplay.value === '8');
+	autoplayOn.click();
+	insert.click();
+	assert('autoplay switched off is written as 0', inserted[3] === '[slider=12 height=400 autoplay=0 thumbnails=1 caption=comment]');
 
 	// --- Closing -------------------------------------------------------------------
 

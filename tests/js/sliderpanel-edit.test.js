@@ -26,7 +26,8 @@ const html = `<!DOCTYPE html><html><body>
       <p id="slider-editor-empty">empty</p>
       <input type="file" id="slider-editor-file" multiple>
       <input type="number" id="slider-editor-height" min="1" max="2000" data-default="400">
-      <input type="number" id="slider-editor-autoplay" min="0" max="60" data-default="0">
+      <input type="checkbox" id="slider-editor-autoplay-on">
+      <input type="number" id="slider-editor-autoplay" min="1" max="60" data-default="0">
       <input type="checkbox" id="slider-editor-thumbnails" data-default="1">
       <select id="slider-editor-caption" data-default="comment">
         <option value="comment">comment</option><option value="name">name</option><option value="none">none</option>
@@ -66,6 +67,7 @@ const title = $('slider-editor-title');
 const message = $('message');
 const height = $('slider-editor-height');
 const autoplay = $('slider-editor-autoplay');
+const autoplayOn = $('slider-editor-autoplay-on');
 const thumbnails = $('slider-editor-thumbnails');
 const caption = $('slider-editor-caption');
 
@@ -118,7 +120,7 @@ function reset() {
 	message.dispatchEvent(new window.MouseEvent('dblclick', { bubbles: true }));
 	assert('double-clicking inside a tag opens the panel in edit mode', isOpen() && isEdit());
 	assert('the tag\'s images are ticked', ticked() === '1,3');
-	assert('the tag\'s options fill the fields', height.value === '300' && autoplay.value === '4' && !thumbnails.checked && caption.value === 'name');
+	assert('the tag\'s options fill the fields', height.value === '300' && autoplayOn.checked && !autoplay.disabled && autoplay.value === '4' && !thumbnails.checked && caption.value === 'name');
 	assert('save is enabled', !action.disabled);
 	close();
 
@@ -153,7 +155,7 @@ function reset() {
 	assert('the edit state is off for a selection that only touches the tag', !button.classList.contains('slider-editor-button--edit') && button.getAttribute('title') === 'Insert slider');
 	button.click();
 	assert('a selection ending at the tag\'s "[" opens insert mode', isOpen() && !isEdit() && ticked() === '');
-	assert('insert mode starts with the board defaults', height.value === '400' && autoplay.value === '0' && thumbnails.checked && caption.value === 'comment');
+	assert('insert mode starts with the board defaults', height.value === '400' && !autoplayOn.checked && autoplay.disabled && thumbnails.checked && caption.value === 'comment');
 	close();
 
 	select(TAG_END, TAG_END);
@@ -164,7 +166,7 @@ function reset() {
 	select(OTHER_START + 3, OTHER_START + 3);
 	button.click();
 	assert('a hand-typed tag without options opens with the board defaults', isEdit() && ticked() === '2'
-		&& height.value === '400' && autoplay.value === '0' && thumbnails.checked && caption.value === 'comment');
+		&& height.value === '400' && !autoplayOn.checked && autoplay.disabled && thumbnails.checked && caption.value === 'comment');
 	close();
 
 	// --- Saving --------------------------------------------------------------------
