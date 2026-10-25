@@ -32,7 +32,25 @@ class SlidesTest extends TestCase
 			'real_filename'	=> $filename,
 			'extension'		=> strtolower(pathinfo($filename, PATHINFO_EXTENSION)),
 			'in_message'	=> 0,
+			'thumbnail'		=> 0,
+			'attach_comment'	=> '',
 		];
+	}
+
+	/** A placeholder as the Slider tag's BBCode template renders it; missing options are empty */
+	private static function placeholder(string $ids, array $options = []): string
+	{
+		$options += ['height' => '', 'autoplay' => '', 'thumbnails' => '', 'caption' => ''];
+
+		return '<image-slider data-ids="' . $ids . '" data-height="' . $options['height'] . '" data-autoplay="' . $options['autoplay']
+			. '" data-thumbnails="' . $options['thumbnails'] . '" data-caption="' . $options['caption'] . '"></image-slider>';
+	}
+
+	private static function fill_one(array $rows, array $options = [], array $defaults = slides::DEFAULTS): string
+	{
+		$ids = implode(',', array_column($rows, 'attach_id'));
+
+		return slides::fill(self::placeholder($ids, $options), $rows, self::EXTENSIONS, 'g', [self::class, 'url'], $defaults);
 	}
 
 	private static function ids(array $slides): array
@@ -42,9 +60,9 @@ class SlidesTest extends TestCase
 		}, $slides);
 	}
 
-	public static function url(int $id): string
+	public static function url(int $id, bool $thumbnail = false): string
 	{
-		return 'file.php?id=' . $id;
+		return 'file.php?id=' . $id . ($thumbnail ? '&amp;t=1' : '');
 	}
 
 	public function test_slides_are_ordered_by_filename_naturally(): void
@@ -118,17 +136,141 @@ class SlidesTest extends TestCase
 	public function test_fill_replaces_the_placeholder_with_slides(): void
 	{
 		$rows = [self::row(2, 'b.jpg'), self::row(1, 'a.jpg')];
-		$html = '<p>Day 1</p><image-slider data-ids="2,1"></image-slider><p>end</p>';
+		$html = '<p>Day 1</p>' . self::placeholder('2,1') . '<p>end</p>';
 
 		$out = slides::fill($html, $rows, self::EXTENSIONS, 'slider-p7', [self::class, 'url']);
 
 		$this->assertSame(
-			'<p>Day 1</p><image-slider class="image-slider">'
-			. '<a class="image-slider-slide" href="file.php?id=1" data-lightbox="slider-p7-1" data-title="a.jpg"><img src="file.php?id=1" alt="a.jpg" loading="lazy"></a>'
-			. '<a class="image-slider-slide" href="file.php?id=2" data-lightbox="slider-p7-1" data-title="b.jpg"><img src="file.php?id=2" alt="b.jpg" loading="lazy"></a>'
+			'<p>Day 1</p><image-slider class="image-slider" style="--image-slider-height:400px" data-thumbnails="1">'
+			. '<a class="image-slider-slide" href="file.php?id=1" data-lightbox="slider-p7-1" data-title="a.jpg" data-thumb="file.php?id=1"><img src="file.php?id=1" alt="a.jpg" loading="lazy"></a>'
+			. '<a class="image-slider-slide" href="file.php?id=2" data-lightbox="slider-p7-1" data-title="b.jpg" data-thumb="file.php?id=2"><img src="file.php?id=2" alt="b.jpg" loading="lazy"></a>'
 			. '</image-slider><p>end</p>',
 			$out
 		);
+	}
+
+	// --- Options -----------------------------------------------------------------
+
+	public function test_options_from_the_tag(): void
+	{
+		$this->assertSame(
+			['height' => 300, 'autoplay' => 4, 'thumbnails' => 0, 'caption' => 'name'],
+			slides::options(['height' => '300', 'autoplay' => '4', 'thumbnails' => '0', 'caption' => 'name'], slides::DEFAULTS)
+		);
+	}
+
+	public function test_missing_options_use_the_defaults(): void
+	{
+		$this->assertSame(slides::DEFAULTS, slides::options(['height' => '', 'autoplay' => '', 'thumbnails' => '', 'caption' => ''], slides::DEFAULTS));
+		$this->assertSame(slides::DEFAULTS, slides::options([], slides::DEFAULTS));
+	}
+
+	public function test_invalid_options_use_the_defaults(): void
+	{
+		$this->assertSame(
+			slides::DEFAULTS,
+			slides::options(['height' => '0', 'autoplay' => '61', 'thumbnails' => '2', 'caption' => 'bogus'], slides::DEFAULTS)
+		);
+		$this->assertSame(slides::DEFAULTS, slides::options(['height' => '2001', 'autoplay' => 'x', 'thumbnails' => '-1'], slides::DEFAULTS));
+	}
+
+	public function test_options_at_the_limits(): void
+	{
+		$this->assertSame(
+			['height' => 2000, 'autoplay' => 60, 'thumbnails' => 1, 'caption' => 'none'],
+			slides::options(['height' => '2000', 'autoplay' => '60', 'thumbnails' => '1', 'caption' => 'none'], slides::DEFAULTS)
+		);
+		$this->assertSame(1, slides::options(['height' => '1'], slides::DEFAULTS)['height']);
+	}
+
+	public function test_given_defaults_are_used(): void
+	{
+		$defaults = ['height' => 250, 'autoplay' => 5, 'thumbnails' => 0, 'caption' => 'none'];
+
+		$this->assertSame($defaults, slides::options([], $defaults));
+	}
+
+	public function test_height_sets_the_slider_height(): void
+	{
+		$out = self::fill_one([self::row(1, 'a.jpg'), self::row(2, 'b.jpg')], ['height' => '300']);
+
+		$this->assertStringContainsString('<image-slider class="image-slider" style="--image-slider-height:300px"', $out);
+	}
+
+	public function test_autoplay_is_passed_to_the_slider(): void
+	{
+		$rows = [self::row(1, 'a.jpg'), self::row(2, 'b.jpg')];
+
+		$this->assertStringContainsString(' data-autoplay="4"', self::fill_one($rows, ['autoplay' => '4']));
+		$this->assertStringNotContainsString('data-autoplay', self::fill_one($rows, ['autoplay' => '0']));
+	}
+
+	public function test_thumbnails_are_passed_to_the_slider(): void
+	{
+		$rows = [self::row(1, 'a.jpg'), self::row(2, 'b.jpg')];
+
+		$this->assertStringContainsString(' data-thumbnails="1"', self::fill_one($rows, ['thumbnails' => '1']));
+		$this->assertStringNotContainsString('data-thumbnails', self::fill_one($rows, ['thumbnails' => '0']));
+	}
+
+	public function test_a_single_slide_has_no_autoplay_or_thumbnails(): void
+	{
+		$out = self::fill_one([self::row(1, 'a.jpg')], ['autoplay' => '4', 'thumbnails' => '1']);
+
+		$this->assertStringNotContainsString('data-autoplay', $out);
+		$this->assertStringNotContainsString('data-thumbnails', $out);
+	}
+
+	public function test_slides_use_phpbb_thumbnails_when_there_are_any(): void
+	{
+		$out = self::fill_one([self::row(1, 'a.jpg', ['thumbnail' => 1]), self::row(2, 'b.jpg')]);
+
+		$this->assertStringContainsString('href="file.php?id=1" data-lightbox="g-1" data-title="a.jpg" data-thumb="file.php?id=1&amp;t=1"', $out);
+		$this->assertStringContainsString('data-title="b.jpg" data-thumb="file.php?id=2"', $out);
+	}
+
+	public function test_caption_name_shows_the_filename_without_extension(): void
+	{
+		$out = self::fill_one([self::row(1, 'Tom &amp; Jerry.beach.jpg')], ['caption' => 'name']);
+
+		$this->assertStringContainsString('<span class="image-slider-caption">Tom &amp; Jerry.beach</span></a>', $out);
+	}
+
+	public function test_caption_comment_shows_the_attachment_comment(): void
+	{
+		$out = self::fill_one([self::row(1, 'a.jpg', ['attach_comment' => 'Col du &lt;Galibier&gt; &amp; more'])], ['caption' => 'comment']);
+
+		$this->assertStringContainsString('<span class="image-slider-caption">Col du &lt;Galibier&gt; &amp; more</span></a>', $out);
+	}
+
+	public function test_caption_comment_without_a_comment_shows_nothing(): void
+	{
+		$this->assertStringNotContainsString('image-slider-caption', self::fill_one([self::row(1, 'a.jpg')], ['caption' => 'comment']));
+	}
+
+	public function test_caption_none_shows_nothing(): void
+	{
+		$out = self::fill_one([self::row(1, 'a.jpg', ['attach_comment' => 'x'])], ['caption' => 'none']);
+
+		$this->assertStringNotContainsString('image-slider-caption', $out);
+	}
+
+	public function test_two_sliders_keep_their_own_options(): void
+	{
+		$rows = [self::row(1, 'a.jpg'), self::row(2, 'b.jpg'), self::row(3, 'c.jpg'), self::row(4, 'd.jpg')];
+		$html = self::placeholder('1,2', ['height' => '200', 'autoplay' => '3']) . self::placeholder('3,4', ['height' => '500', 'thumbnails' => '0']);
+
+		$out = slides::fill($html, $rows, self::EXTENSIONS, 'g', [self::class, 'url']);
+
+		$this->assertStringContainsString('style="--image-slider-height:200px" data-autoplay="3" data-thumbnails="1"', $out);
+		$this->assertStringContainsString('style="--image-slider-height:500px">', $out);
+	}
+
+	public function test_shown_ids_read_placeholders_with_options(): void
+	{
+		$rows = [self::row(1, 'a.jpg'), self::row(2, 'b.jpg')];
+
+		$this->assertSame([2], slides::shown_ids(self::placeholder('2', ['height' => '300', 'caption' => 'name']), $rows, self::EXTENSIONS));
 	}
 
 	public function test_each_slider_gets_its_own_lightbox_group(): void
@@ -156,7 +298,6 @@ class SlidesTest extends TestCase
 
 		$out = slides::fill('<image-slider data-ids="1"></image-slider>', $rows, self::EXTENSIONS, 'g', [self::class, 'url']);
 
-		$this->assertStringContainsString('data-title="Tom &amp; Jerry &quot;1&quot;.jpg"', $out);
 		$this->assertStringContainsString('alt="Tom &amp; Jerry &quot;1&quot;.jpg"', $out);
 	}
 
@@ -167,7 +308,18 @@ class SlidesTest extends TestCase
 		$out = slides::fill('<image-slider data-ids="1"></image-slider>', $rows, self::EXTENSIONS, 'g', [self::class, 'url']);
 
 		$this->assertStringNotContainsString('<script>', $out);
-		$this->assertStringContainsString('data-title="&quot;&gt;&lt;script&gt;x&lt;/script&gt;.jpg"', $out);
+		$this->assertStringContainsString('alt="&quot;&gt;&lt;script&gt;x&lt;/script&gt;.jpg"', $out);
+	}
+
+	public function test_the_lightbox_title_is_escaped_for_html_insertion(): void
+	{
+		// Lightbox3 puts the decoded data-title into the page with innerHTML, so
+		// the attribute holds the title as escaped HTML, escaped once more.
+		$rows = [self::row(1, '&lt;img src=x onerror=alert(1)&gt; &amp; co.jpg')];
+
+		$out = slides::fill('<image-slider data-ids="1"></image-slider>', $rows, self::EXTENSIONS, 'g', [self::class, 'url']);
+
+		$this->assertStringContainsString('data-title="&amp;lt;img src=x onerror=alert(1)&amp;gt; &amp;amp; co.jpg"', $out);
 	}
 
 	public function test_order_uses_the_unescaped_filename(): void

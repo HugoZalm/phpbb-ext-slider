@@ -6,15 +6,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Slider fixture</title>
 <link rel="stylesheet" href="../assets/css/slider.css">
-<script>window.SLIDER_CONFIG = { messages: { previous: 'Previous image', next: 'Next image' } };</script>
+<script>window.SLIDER_CONFIG = { messages: { previous: 'Previous image', next: 'Next image', showImage: 'Show image %d', thumbnails: 'Thumbnails', pause: 'Pause slideshow', play: 'Play slideshow' } };</script>
 <script src="../assets/js/slider.js" defer></script>
 <style>body { font-family: sans-serif; max-width: 800px; margin: 2em auto; padding: 0 16px; }</style>
 </head>
 <body>
 <h1>Slider fixture</h1>
 
-<h2>Three Slides</h2>
-<image-slider class="image-slider" id="three"></image-slider>
+<h2>Three Slides (defaults: 400px, thumbnails, comment captions)</h2>
+<image-slider class="image-slider" id="three" style="--image-slider-height:400px" data-thumbnails="1"></image-slider>
+
+<h2>Options: height 250, autoplay 3s, no thumbnails</h2>
+<image-slider class="image-slider" id="auto" style="--image-slider-height:250px" data-autoplay="3"></image-slider>
 
 <h2>Single Slide</h2>
 <image-slider class="image-slider" id="one"></image-slider>
@@ -34,11 +37,13 @@
 	function slides(id, items) {
 		document.getElementById(id).innerHTML = items.map(function (item) {
 			var src = svg(item[0], item[1]);
-			return '<a class="image-slider-slide" href="' + src + '" data-lightbox="' + id + '" data-title="' + item[0] + '"><img src="' + src + '" alt="' + item[0] + '"></a>';
+			var caption = item[2] ? '<span class="image-slider-caption">' + item[2] + '</span>' : '';
+			return '<a class="image-slider-slide" href="' + src + '" data-lightbox="' + id + '" data-title="' + item[0] + '" data-thumb="' + src + '"><img src="' + src + '" alt="' + item[0] + '">' + caption + '</a>';
 		}).join('');
 	}
 
-	slides('three', [['01.jpeg', '#2a6f97'], ['02.jpeg', '#6a994e'], ['10.jpeg', '#bc4749']]);
+	slides('three', [['01.jpeg', '#2a6f97', 'Col du Galibier'], ['02.jpeg', '#6a994e'], ['10.jpeg', '#bc4749', 'Camping']]);
+	slides('auto', [['a.jpeg', '#264653'], ['b.jpeg', '#e76f51'], ['c.jpeg', '#2a9d8f']]);
 	slides('one', [['single.jpeg', '#555']]);
 </script>
 </body>

@@ -37,5 +37,9 @@ if (empty($lang) || !is_array($lang))
 $lang = array_merge($lang, [
 	'SLIDER_PREVIOUS'			=> 'Previous image',
 	'SLIDER_NEXT'				=> 'Next image',
+	'SLIDER_SHOW_IMAGE'			=> 'Show image %d',
+	'SLIDER_THUMBNAILS'			=> 'Thumbnails',
+	'SLIDER_PAUSE'				=> 'Pause slideshow',
+	'SLIDER_PLAY'				=> 'Play slideshow',
 	'SLIDER_REQUIRES_LIGHTBOX'	=> 'The Slider extension needs the Lightbox extension (vse/lightbox). Enable Lightbox first.',
 ]);

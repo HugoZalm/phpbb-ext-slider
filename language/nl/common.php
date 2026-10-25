@@ -37,5 +37,9 @@ if (empty($lang) || !is_array($lang))
 $lang = array_merge($lang, [
 	'SLIDER_PREVIOUS'			=> 'Vorige afbeelding',
 	'SLIDER_NEXT'				=> 'Volgende afbeelding',
+	'SLIDER_SHOW_IMAGE'			=> 'Toon afbeelding %d',
+	'SLIDER_THUMBNAILS'			=> 'Miniaturen',
+	'SLIDER_PAUSE'				=> 'Diavoorstelling pauzeren',
+	'SLIDER_PLAY'				=> 'Diavoorstelling afspelen',
 	'SLIDER_REQUIRES_LIGHTBOX'	=> 'De Slider-extensie heeft de Lightbox-extensie (vse/lightbox) nodig. Schakel eerst Lightbox in.',
 ]);

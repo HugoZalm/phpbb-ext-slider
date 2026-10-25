@@ -21,8 +21,53 @@ class slides
 	/** phpBB's ATTACHMENT_CATEGORY_IMAGE */
 	const IMAGE_CATEGORY = 1;
 
-	/** What the Slider tag's BBCode template renders */
-	const PLACEHOLDER = '#<image-slider data-ids="([\d,]*)"></image-slider>#';
+	/** What the Slider tag's BBCode template renders: the ids, then the options (empty when not given) */
+	const PLACEHOLDER = '#<image-slider data-ids="([\d,]*)"((?: data-[a-z]+="[^"]*")*)></image-slider>#';
+
+	/** Display options used when a tag leaves one out or gives an invalid value */
+	const DEFAULTS = [
+		'height'		=> 400,
+		'autoplay'		=> 0,
+		'thumbnails'	=> 1,
+		'caption'		=> 'comment',
+	];
+
+	/** Allowed values per option: [min, max] for numbers, a list for choices */
+	const LIMITS = [
+		'height'		=> [1, 2000],
+		'autoplay'		=> [0, 60],
+		'thumbnails'	=> [0, 1],
+		'caption'		=> ['none', 'name', 'comment'],
+	];
+
+	/**
+	 * A Slider's display options: the tag's valid values, the defaults otherwise.
+	 *
+	 * @param array	$attributes	Option values from the tag, as strings; '' when not given
+	 * @param array	$defaults	Values to fall back on, keyed like DEFAULTS
+	 * @return array	Keyed like DEFAULTS
+	 */
+	public static function options(array $attributes, array $defaults)
+	{
+		$options = [];
+
+		foreach (self::LIMITS as $name => $allowed)
+		{
+			$value = isset($attributes[$name]) ? (string) $attributes[$name] : '';
+
+			if (is_string($allowed[0]))
+			{
+				$options[$name] = in_array($value, $allowed, true) ? $value : $defaults[$name];
+			}
+			else
+			{
+				$valid = ctype_digit($value) && (int) $value >= $allowed[0] && (int) $value <= $allowed[1];
+				$options[$name] = $valid ? (int) $value : $defaults[$name];
+			}
+		}
+
+		return $options;
+	}
 
 	/**
 	 * The attachments a Slider tag shows: the post's own image attachments it
@@ -72,13 +117,15 @@ class slides
 	 * @param array		$extensions	Attachment extensions, as from obtain_attach_extensions()
 	 * @param string	$group		Lightbox gallery prefix, unique per post on the page
 	 * @param callable	$url		Builds an attachment's download URL (HTML-escaped) from its id
+	 * 								and whether the thumbnail is wanted
+	 * @param array		$defaults	Display options for options a tag leaves out
 	 * @return string
 	 */
-	public static function fill($html, array $rows, array $extensions, $group, callable $url)
+	public static function fill($html, array $rows, array $extensions, $group, callable $url, array $defaults = self::DEFAULTS)
 	{
 		$count = 0;
 
-		return preg_replace_callback(self::PLACEHOLDER, function ($match) use ($rows, $extensions, $group, $url, &$count) {
+		return preg_replace_callback(self::PLACEHOLDER, function ($match) use ($rows, $extensions, $group, $url, $defaults, &$count) {
 			$slides = self::select($match[1], $rows, $extensions);
 
 			if (!$slides)
@@ -86,20 +133,72 @@ class slides
 				return '';
 			}
 
+			preg_match_all('#data-([a-z]+)="([^"]*)"#', $match[2], $pairs);
+			$options = self::options(array_combine($pairs[1], $pairs[2]), $defaults);
+
 			$gallery = $group . '-' . ++$count;
 			$markup = '';
 
 			foreach ($slides as $slide)
 			{
-				$src = call_user_func($url, (int) $slide['attach_id']);
-				$title = htmlspecialchars(self::filename($slide), ENT_QUOTES, 'UTF-8');
+				$id = (int) $slide['attach_id'];
+				$src = call_user_func($url, $id, false);
+				$thumb = empty($slide['thumbnail']) ? $src : call_user_func($url, $id, true);
+				$title = self::escape(self::filename($slide));
+				$caption = self::caption($slide, $options['caption']);
 
-				$markup .= '<a class="image-slider-slide" href="' . $src . '" data-lightbox="' . $gallery . '" data-title="' . $title . '">'
-					. '<img src="' . $src . '" alt="' . $title . '" loading="lazy"></a>';
+				// The lightbox inserts the decoded data-title as HTML, so escape it twice.
+				$markup .= '<a class="image-slider-slide" href="' . $src . '" data-lightbox="' . $gallery . '" data-title="' . self::escape($title) . '" data-thumb="' . $thumb . '">'
+					. '<img src="' . $src . '" alt="' . $title . '" loading="lazy">'
+					. ($caption !== '' ? '<span class="image-slider-caption">' . self::escape($caption) . '</span>' : '')
+					. '</a>';
 			}
 
-			return '<image-slider class="image-slider">' . $markup . '</image-slider>';
+			// The component reads these; a single Slide has nothing to step through.
+			$attributes = ' style="--image-slider-height:' . $options['height'] . 'px"';
+
+			if (count($slides) > 1)
+			{
+				$attributes .= $options['autoplay'] ? ' data-autoplay="' . $options['autoplay'] . '"' : '';
+				$attributes .= $options['thumbnails'] ? ' data-thumbnails="1"' : '';
+			}
+
+			return '<image-slider class="image-slider"' . $attributes . '>' . $markup . '</image-slider>';
 		}, $html);
+	}
+
+	/**
+	 * The caption shown under a Slide.
+	 *
+	 * @param array		$row	Attachment row
+	 * @param string	$type	none, name (filename without extension) or comment
+	 * @return string	Plain text, '' for no caption
+	 */
+	protected static function caption(array $row, $type)
+	{
+		if ($type === 'name')
+		{
+			return pathinfo(self::filename($row), PATHINFO_FILENAME);
+		}
+
+		if ($type === 'comment' && isset($row['attach_comment']))
+		{
+			// Stored HTML-escaped, like the filename.
+			return trim(htmlspecialchars_decode($row['attach_comment'], ENT_QUOTES));
+		}
+
+		return '';
+	}
+
+	/**
+	 * Escape plain text for HTML.
+	 *
+	 * @param string	$text	Plain text
+	 * @return string	Text safe for HTML content and attribute values
+	 */
+	protected static function escape($text)
+	{
+		return htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
 	}
 
 	/**

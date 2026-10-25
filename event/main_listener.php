@@ -105,6 +105,10 @@ class main_listener implements EventSubscriberInterface
 			'messages'	=> [
 				'previous'	=> $this->language->lang('SLIDER_PREVIOUS'),
 				'next'		=> $this->language->lang('SLIDER_NEXT'),
+				'showImage'	=> $this->language->lang('SLIDER_SHOW_IMAGE'),
+				'thumbnails'	=> $this->language->lang('SLIDER_THUMBNAILS'),
+				'pause'		=> $this->language->lang('SLIDER_PAUSE'),
+				'play'		=> $this->language->lang('SLIDER_PLAY'),
 			],
 		];
 
@@ -249,23 +253,29 @@ class main_listener implements EventSubscriberInterface
 			return;
 		}
 
-		$ids = [];
+		$comments = [];
 
 		foreach ($event['message_parser']->attachment_data as $attachment)
 		{
-			$ids[] = (int) $attachment['attach_id'];
+			$comments[(int) $attachment['attach_id']] = $attachment['attach_comment'];
 		}
 
-		// The editor's attachment data lacks the extension; fetch the rows.
+		// The editor's attachment data lacks the extension and thumbnail flag;
+		// fetch the rows, but keep the comments as currently being edited.
 		$rows = [];
 
-		if ($ids)
+		if ($comments)
 		{
-			$sql = 'SELECT attach_id, real_filename, extension, in_message
+			$sql = 'SELECT attach_id, real_filename, extension, in_message, thumbnail
 				FROM ' . ATTACHMENTS_TABLE . '
-				WHERE ' . $this->db->sql_in_set('attach_id', $ids);
+				WHERE ' . $this->db->sql_in_set('attach_id', array_keys($comments));
 			$result = $this->db->sql_query($sql);
-			$rows = $this->db->sql_fetchrowset($result);
+
+			while ($row = $this->db->sql_fetchrow($result))
+			{
+				$row['attach_comment'] = $comments[(int) $row['attach_id']];
+				$rows[] = $row;
+			}
 			$this->db->sql_freeresult($result);
 		}
 
@@ -335,8 +345,8 @@ class main_listener implements EventSubscriberInterface
 
 		$download = $this->root_path . 'download/file.' . $this->php_ext;
 
-		return slides::fill($html, $rows, $this->cache->obtain_attach_extensions($forum_id), $group, function ($attach_id) use ($download) {
-			return append_sid($download, 'id=' . $attach_id);
-		});
+		return slides::fill($html, $rows, $this->cache->obtain_attach_extensions($forum_id), $group, function ($attach_id, $thumbnail) use ($download) {
+			return append_sid($download, 'id=' . $attach_id . ($thumbnail ? '&amp;t=1' : ''));
+		}, slides::DEFAULTS);
 	}
 }
