@@ -183,6 +183,28 @@ class SlidesTest extends TestCase
 		$this->assertSame(1, slides::options(['height' => '1'], slides::DEFAULTS)['height']);
 	}
 
+	public function test_valid_settings_have_no_invalid_options(): void
+	{
+		$this->assertSame([], slides::invalid_options(['height' => '400', 'autoplay' => '0', 'thumbnails' => '1', 'caption' => 'comment']));
+		$this->assertSame([], slides::invalid_options(['height' => '2000', 'autoplay' => '60', 'thumbnails' => '0', 'caption' => 'none']));
+		$this->assertSame([], slides::invalid_options(['height' => 1, 'autoplay' => 5, 'thumbnails' => 1, 'caption' => 'name']));
+	}
+
+	public function test_each_invalid_option_is_reported(): void
+	{
+		$this->assertSame(
+			['height', 'autoplay', 'thumbnails', 'caption'],
+			slides::invalid_options(['height' => '0', 'autoplay' => '61', 'thumbnails' => '2', 'caption' => 'bogus'])
+		);
+		$this->assertSame(['height', 'autoplay'], slides::invalid_options(['height' => '2001', 'autoplay' => 'x', 'thumbnails' => '1', 'caption' => 'name']));
+		$this->assertSame(['height'], slides::invalid_options(['height' => '', 'autoplay' => '3', 'thumbnails' => '0', 'caption' => 'name']));
+	}
+
+	public function test_a_missing_setting_is_invalid(): void
+	{
+		$this->assertSame(['caption'], slides::invalid_options(['height' => '400', 'autoplay' => '0', 'thumbnails' => '1']));
+	}
+
 	public function test_given_defaults_are_used(): void
 	{
 		$defaults = ['height' => 250, 'autoplay' => 5, 'thumbnails' => 0, 'caption' => 'none'];

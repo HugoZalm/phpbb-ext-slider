@@ -38,6 +38,9 @@ class main_listener implements EventSubscriberInterface
 	/** @var \phpbb\db\driver\driver_interface */
 	protected $db;
 
+	/** @var \phpbb\config\config */
+	protected $config;
+
 	/** @var string */
 	protected $root_path;
 
@@ -54,15 +57,17 @@ class main_listener implements EventSubscriberInterface
 	 * @param \phpbb\language\language			$language	Language object
 	 * @param \phpbb\cache\service				$cache		Cache service
 	 * @param \phpbb\db\driver\driver_interface	$db			Database connection
+	 * @param \phpbb\config\config				$config		Config object
 	 * @param string							$root_path	phpBB root path
 	 * @param string							$php_ext	PHP file extension
 	 */
-	public function __construct(\phpbb\template\template $template, \phpbb\language\language $language, \phpbb\cache\service $cache, \phpbb\db\driver\driver_interface $db, $root_path, $php_ext)
+	public function __construct(\phpbb\template\template $template, \phpbb\language\language $language, \phpbb\cache\service $cache, \phpbb\db\driver\driver_interface $db, \phpbb\config\config $config, $root_path, $php_ext)
 	{
 		$this->template = $template;
 		$this->language = $language;
 		$this->cache = $cache;
 		$this->db = $db;
+		$this->config = $config;
 		$this->root_path = $root_path;
 		$this->php_ext = $php_ext;
 	}
@@ -347,6 +352,24 @@ class main_listener implements EventSubscriberInterface
 
 		return slides::fill($html, $rows, $this->cache->obtain_attach_extensions($forum_id), $group, function ($attach_id, $thumbnail) use ($download) {
 			return append_sid($download, 'id=' . $attach_id . ($thumbnail ? '&amp;t=1' : ''));
-		}, slides::DEFAULTS);
+		}, $this->defaults());
+	}
+
+	/**
+	 * The display options for tags that leave one out: the ACP settings, or the
+	 * built-in ones where a setting is missing or invalid.
+	 *
+	 * @return array	Keyed like slides::DEFAULTS
+	 */
+	protected function defaults()
+	{
+		$settings = [];
+
+		foreach (array_keys(slides::DEFAULTS) as $name)
+		{
+			$settings[$name] = isset($this->config['slider_' . $name]) ? $this->config['slider_' . $name] : '';
+		}
+
+		return slides::options($settings, slides::DEFAULTS);
 	}
 }

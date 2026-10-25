@@ -55,18 +55,56 @@ class slides
 		{
 			$value = isset($attributes[$name]) ? (string) $attributes[$name] : '';
 
-			if (is_string($allowed[0]))
+			if (!self::is_valid($name, $value))
 			{
-				$options[$name] = in_array($value, $allowed, true) ? $value : $defaults[$name];
+				$options[$name] = $defaults[$name];
 			}
 			else
 			{
-				$valid = ctype_digit($value) && (int) $value >= $allowed[0] && (int) $value <= $allowed[1];
-				$options[$name] = $valid ? (int) $value : $defaults[$name];
+				$options[$name] = is_string($allowed[0]) ? $value : (int) $value;
 			}
 		}
 
 		return $options;
+	}
+
+	/**
+	 * The options whose values are missing or outside LIMITS, e.g. in the ACP's
+	 * default settings form.
+	 *
+	 * @param array	$values	Option values keyed like DEFAULTS
+	 * @return string[]	Names of the invalid options, in DEFAULTS order
+	 */
+	public static function invalid_options(array $values)
+	{
+		$invalid = [];
+
+		foreach (array_keys(self::LIMITS) as $name)
+		{
+			if (!self::is_valid($name, isset($values[$name]) ? (string) $values[$name] : ''))
+			{
+				$invalid[] = $name;
+			}
+		}
+
+		return $invalid;
+	}
+
+	/**
+	 * @param string	$name	Option name, a key of LIMITS
+	 * @param string	$value	Option value as text
+	 * @return bool
+	 */
+	protected static function is_valid($name, $value)
+	{
+		$allowed = self::LIMITS[$name];
+
+		if (is_string($allowed[0]))
+		{
+			return in_array($value, $allowed, true);
+		}
+
+		return ctype_digit($value) && (int) $value >= $allowed[0] && (int) $value <= $allowed[1];
 	}
 
 	/**

@@ -1,0 +1,55 @@
+{% INCLUDE 'overall_header.html' %}
+
+<a id="maincontent"></a>
+
+<h1>{{ lang('ACP_SLIDER_TITLE') }}</h1>
+
+<p>{{ lang('ACP_SLIDER_EXPLAIN') }}</p>
+
+{% if S_ERROR %}
+	<div class="errorbox">
+		<h3>{{ lang('WARNING') }}</h3>
+		<p>{{ ERROR_MSG }}</p>
+	</div>
+{% endif %}
+
+<form id="slider_acp" name="slider_acp" method="post" action="{{ U_ACTION }}">
+
+	<fieldset>
+		<legend>{{ lang('ACP_SLIDER_DEFAULTS') }}</legend>
+		<dl>
+			<dt><label for="slider_height">{{ lang('ACP_SLIDER_HEIGHT') ~ lang('COLON') }}</label><br /><span>{{ lang('ACP_SLIDER_HEIGHT_EXPLAIN') }}</span></dt>
+			<dd><input type="number" id="slider_height" name="slider_height" value="{{ SLIDER_HEIGHT|e('html_attr') }}" min="1" max="2000" class="text" /> {{ lang('ACP_SLIDER_PIXELS') }}</dd>
+		</dl>
+		<dl>
+			<dt><label for="slider_autoplay">{{ lang('ACP_SLIDER_AUTOPLAY') ~ lang('COLON') }}</label><br /><span>{{ lang('ACP_SLIDER_AUTOPLAY_EXPLAIN') }}</span></dt>
+			<dd><input type="number" id="slider_autoplay" name="slider_autoplay" value="{{ SLIDER_AUTOPLAY|e('html_attr') }}" min="0" max="60" class="text" /> {{ lang('ACP_SLIDER_SECONDS') }}</dd>
+		</dl>
+		<dl>
+			<dt><label for="slider_thumbnails_yes">{{ lang('ACP_SLIDER_THUMBNAILS') ~ lang('COLON') }}</label><br /><span>{{ lang('ACP_SLIDER_THUMBNAILS_EXPLAIN') }}</span></dt>
+			<dd>
+				<label><input type="radio" class="radio" id="slider_thumbnails_yes" name="slider_thumbnails" value="1"{% if SLIDER_THUMBNAILS %} checked="checked"{% endif %} /> {{ lang('YES') }}</label>
+				<label><input type="radio" class="radio" name="slider_thumbnails" value="0"{% if not SLIDER_THUMBNAILS %} checked="checked"{% endif %} /> {{ lang('NO') }}</label>
+			</dd>
+		</dl>
+		<dl>
+			<dt><label for="slider_caption">{{ lang('ACP_SLIDER_CAPTION') ~ lang('COLON') }}</label><br /><span>{{ lang('ACP_SLIDER_CAPTION_EXPLAIN') }}</span></dt>
+			<dd>
+				<select id="slider_caption" name="slider_caption">
+					<option value="comment"{% if SLIDER_CAPTION == 'comment' %} selected="selected"{% endif %}>{{ lang('ACP_SLIDER_CAPTION_COMMENT') }}</option>
+					<option value="name"{% if SLIDER_CAPTION == 'name' %} selected="selected"{% endif %}>{{ lang('ACP_SLIDER_CAPTION_NAME') }}</option>
+					<option value="none"{% if SLIDER_CAPTION == 'none' %} selected="selected"{% endif %}>{{ lang('ACP_SLIDER_CAPTION_NONE') }}</option>
+				</select>
+			</dd>
+		</dl>
+	</fieldset>
+
+	<fieldset class="submit-buttons">
+		<input class="button1" type="submit" id="submit" name="submit" value="{{ lang('SUBMIT') }}" />&nbsp;
+		<input class="button2" type="reset" id="reset" name="reset" value="{{ lang('RESET') }}" />
+		{{ S_FORM_TOKEN }}
+	</fieldset>
+
+</form>
+
+{% INCLUDE 'overall_footer.html' %}
